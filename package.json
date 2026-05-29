@@ -1,0 +1,9 @@
+{
+  "name": "pi-quiz",
+  "scripts": {
+    "dev": "vite"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
