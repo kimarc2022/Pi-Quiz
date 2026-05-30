@@ -191,6 +191,22 @@
       margin-top: 0.2rem;
       letter-spacing: 0.08em;
     }
+
+    #reset-btn {
+      display: inline-block;
+      background: transparent;
+      border: 1px solid var(--dim);
+      border-radius: 6px;
+      color: var(--dim2);
+      font-family: inherit;
+      font-size: 0.82rem;
+      padding: 0.35rem 1.2rem;
+      cursor: pointer;
+      margin-top: 0.6rem;
+      letter-spacing: 0.08em;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #reset-btn:hover, #reset-btn:active { border-color: var(--dim2); color: var(--text); }
   </style>
 </head>
 <body>
@@ -215,12 +231,18 @@
   </div>
 
   <div id="status">Type the digits of π from memory — start with 1</div>
-  <div id="hint">Press <kbd>r</kbd> to reset at any time</div>
+  <div id="hint">Press <kbd>r</kbd> to reset at any time · tap screen to open keyboard on mobile</div>
+  <button id="reset-btn" type="button">Reset</button>
 
   <footer>
     <div id="footer-company">Kallukalam Industries</div>
   </footer>
 </div>
+
+<!-- hidden input: focused on any tap/click to trigger mobile keyboard -->
+<input id="mobile-input" type="text" inputmode="numeric" pattern="[0-9]*"
+       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+       style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;">
 
 <script src="pi_digits.js"></script>
 <script>
@@ -240,14 +262,16 @@
   }
 
   // Cache DOM — never query in the hot path
-  const countEl    = document.getElementById('count');
-  const tapeEl     = document.getElementById('tape');
-  const statusEl   = document.getElementById('status');
-  const errorEl    = document.getElementById('error');
-  const typedEl    = document.getElementById('typed-char');
-  const expectedEl = document.getElementById('expected-char');
-  const scoreValEl = document.getElementById('score-val');
-  const scorePlEl  = document.getElementById('score-plural');
+  const countEl     = document.getElementById('count');
+  const tapeEl      = document.getElementById('tape');
+  const statusEl    = document.getElementById('status');
+  const errorEl     = document.getElementById('error');
+  const typedEl     = document.getElementById('typed-char');
+  const expectedEl  = document.getElementById('expected-char');
+  const scoreValEl  = document.getElementById('score-val');
+  const scorePlEl   = document.getElementById('score-plural');
+  const resetBtn    = document.getElementById('reset-btn');
+  const mobileInput = document.getElementById('mobile-input');
 
   const TAPE_LEN = 38;
 
@@ -260,11 +284,12 @@
     state = 'active';
     idx   = 1;
     tape  = '3';
-    countEl.textContent = '1';
-    tapeEl.textContent  = '3';
+    countEl.textContent  = '1';
+    tapeEl.textContent   = '3';
     statusEl.textContent = 'Type the digits of π from memory — start with 1';
     errorEl.classList.add('hidden');
     document.body.classList.remove('failed');
+    mobileInput.focus();
   }
 
   function fail(typedChar, expectedChar) {
@@ -273,33 +298,19 @@
     expectedEl.textContent = expectedChar;
     scoreValEl.textContent = idx;
     scorePlEl.textContent  = idx === 1 ? '' : 's';
-    statusEl.textContent   = 'Press r to try again';
+    statusEl.textContent   = 'Press r or tap Reset to try again';
     errorEl.classList.remove('hidden');
     document.body.classList.add('failed');
   }
 
-  document.addEventListener('keydown', function (e) {
-    // r/R resets from any state — highest priority
-    if (e.key === 'r' || e.key === 'R') {
-      reset();
-      return;
-    }
-
+  function processDigit(digit) {
     if (state !== 'active') return;
-
-    // Ignore everything that isn't a digit (0-9, including numpad)
-    if (!/^[0-9]$/.test(e.key)) return;
-
-    // Hot path — O(1) string index, two textContent writes, nothing else
-    const digit    = e.key;
     const expected = PI_DIGITS[idx];
-
     if (digit === expected) {
       idx++;
       tape = (tape + digit).slice(-TAPE_LEN);
       countEl.textContent = idx;
       tapeEl.textContent  = tape;
-
       if (idx >= PI_DIGITS.length) {
         statusEl.textContent = '🎉 PERFECT — all ' + PI_DIGITS.length.toLocaleString() + ' digits correct!';
         state = 'failed';
@@ -307,6 +318,34 @@
     } else {
       fail(digit, expected);
     }
+  }
+
+  // Focus hidden input on load (desktop) and on every tap/click (mobile + desktop)
+  mobileInput.focus();
+  document.addEventListener('click', function () { mobileInput.focus(); });
+
+  // Mobile keyboard → input event: extract typed digit, clear field, process
+  mobileInput.addEventListener('input', function () {
+    const val = this.value;
+    this.value = '';
+    const digit = val.slice(-1); // last char (handles paste or multi-char edge cases)
+    if (!/^[0-9]$/.test(digit)) return;
+    processDigit(digit);
+  });
+
+  // Desktop keyboard: keydown on document for 'r' (reset) and digit keys
+  // Digit keys also fire 'input' on mobileInput when it's focused (which it always is
+  // on desktop after page load), so we skip digit handling here to avoid double-processing.
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'r' || e.key === 'R') {
+      reset();
+    }
+  });
+
+  // Reset button for mobile users who can't press 'r'
+  resetBtn.addEventListener('click', function (e) {
+    e.stopPropagation(); // don't also trigger the document click → focus
+    reset();
   });
 
 })();
