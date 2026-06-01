@@ -115,6 +115,7 @@ npm run dev
 
 | Date       | Change |
 |------------|--------|
+| 2026-06-01 | Converted `og-image.svg` → `og-image.png` (1200×630 PNG) so Google and social platforms actually load the preview image; updated og:image meta tags to point to PNG |
 | 2026-06-01 | Updated `<title>` to "Pi Memorization Quiz: Made by Students, For Students" (Google search + tab); fixed mobile reset button cut off by keyboard (now `position: fixed` top-right on screens ≤600px) |
 | 2026-06-01 | Added `favicon.svg` (π icon) and `og-image.svg` (1200×630 social preview card); wired up `<link rel="icon">` and Open Graph / Twitter Card meta tags in `index.html` so the site shows a custom image on Google and when shared on social media |
 | 2026-05-29 | Added `<meta name="description">` for Google search snippet |
