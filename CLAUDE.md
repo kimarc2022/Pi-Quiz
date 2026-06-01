@@ -108,3 +108,15 @@ npm run dev
 - A backend or database — not needed; localStorage covers all persistence
 - A framework (React, Vue, etc.) — overkill for a single-page app this size
 - User accounts / login — unnecessary complexity for a personal project
+
+---
+
+## Changelog
+
+| Date       | Change |
+|------------|--------|
+| 2026-06-01 | Added `favicon.svg` (π icon) and `og-image.svg` (1200×630 social preview card); wired up `<link rel="icon">` and Open Graph / Twitter Card meta tags in `index.html` so the site shows a custom image on Google and when shared on social media |
+| 2026-05-29 | Added `<meta name="description">` for Google search snippet |
+| 2026-05-28 | Added localStorage persistence, Learn tab, and Google Analytics |
+| 2026-05-28 | Added mobile keyboard support and reset button |
+| 2026-05-28 | Initial commit |
