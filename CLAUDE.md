@@ -8,6 +8,10 @@ A browser-based quiz that tests how many digits of π the user can recall from m
 
 Beginner developer. Keep explanations simple. Avoid complex abstractions or unnecessary dependencies.
 
+## Git workflow
+
+After every edit to any file, immediately commit and `git push` to the remote. Do not batch changes — push each change as it's made.
+
 ## Tech stack
 
 - Plain HTML, CSS, and JavaScript — no framework
