@@ -212,6 +212,15 @@
     }
     #reset-btn:hover, #reset-btn:active { border-color: var(--dim2); color: var(--text); }
 
+    #start-from  { font-size: 0.72rem; color: var(--dim); min-height: 1em; margin-bottom: 0.2rem; }
+    #start-wrap  { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 0.7rem; font-size: 0.82rem; color: var(--dim2); }
+    #start-input { background: var(--surface); border: 1px solid var(--dim); border-radius: 4px; color: var(--text); font-family: inherit; font-size: 0.82rem; padding: 0.25rem 0.5rem; width: 5.5rem; text-align: center; -moz-appearance: textfield; }
+    #start-input::-webkit-outer-spin-button,
+    #start-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    #start-input:focus { outline: none; border-color: var(--correct); }
+    #start-go-btn { background: transparent; border: 1px solid var(--dim); border-radius: 6px; color: var(--dim2); font-family: inherit; font-size: 0.82rem; padding: 0.25rem 0.9rem; cursor: pointer; letter-spacing: 0.08em; -webkit-tap-highlight-color: transparent; }
+    #start-go-btn:hover, #start-go-btn:active { border-color: var(--correct); color: var(--correct); }
+
     @media (max-width: 600px) {
       #reset-btn {
         position: fixed;
@@ -312,6 +321,7 @@
   <div id="tab-quiz">
     <div id="count">1</div>
     <div id="count-label">digits correct</div>
+    <div id="start-from" class="hidden"></div>
     <div id="new-best"></div>
 
     <div id="tape-wrap">
@@ -329,6 +339,11 @@
 
     <div id="status">Type the digits of π from memory — start with 1</div>
     <div id="hint">Press <kbd>r</kbd> to reset · tap screen for mobile keyboard</div>
+    <div id="start-wrap">
+      <span>Start at digit #</span>
+      <input id="start-input" type="number" min="1" max="99999" value="1" inputmode="numeric" autocomplete="off">
+      <button id="start-go-btn" type="button">Go</button>
+    </div>
     <button id="reset-btn" type="button">Reset</button>
 
     <div id="history" class="hidden">
@@ -451,11 +466,23 @@
   const pracResult    = $('practice-result');
   const pracStatus    = $('practice-status');
   const pracClose     = $('practice-close');
+  const startFromEl   = $('start-from');
+  const startInput    = $('start-input');
+  const startGoBtn    = $('start-go-btn');
 
   const TAPE_LEN = 38;
 
+  function buildInitialTape(pos) {
+    if (pos <= 1) return '3.';
+    let t = pos <= TAPE_LEN ? '3.' : '';
+    const from = Math.max(1, pos - TAPE_LEN);
+    for (let i = from; i < pos; i++) t += PI_DIGITS[i];
+    return t.slice(-TAPE_LEN);
+  }
+
   // ── App state ─────────────────────────────────────────────────────────────
   let currentTab = 'quiz';
+  let startPos   = 1;
   let quizState  = 'active'; // 'active' | 'failed'
   let idx        = 1;
   let tape       = '3.';
@@ -490,12 +517,21 @@
   // ── Quiz ──────────────────────────────────────────────────────────────────
   function resetQuiz() {
     quizState            = 'active';
-    idx                  = 1;
-    tape                 = '3.';
-    countEl.textContent  = '1';
-    tapeEl.textContent   = '3.';
-    statusEl.textContent = 'Type the digits of π from memory — start with 1';
+    idx                  = startPos;
+    tape                 = buildInitialTape(startPos);
+    countEl.textContent  = startPos;
+    tapeEl.textContent   = tape;
+    statusEl.textContent = startPos > 1
+      ? 'Continue from digit #' + startPos.toLocaleString() + ' — type the next digit'
+      : 'Type the digits of π from memory — start with 1';
     newBestEl.textContent = '';
+    if (startPos > 1) {
+      startFromEl.textContent = 'started at digit #' + startPos.toLocaleString();
+      startFromEl.classList.remove('hidden');
+    } else {
+      startFromEl.textContent = '';
+      startFromEl.classList.add('hidden');
+    }
     errorEl.classList.add('hidden');
     document.body.classList.remove('failed');
     mobileInput.focus();
@@ -506,16 +542,18 @@
     const score = idx;
 
     newBestEl.textContent = '';
-    Store.markPlayed();
-    Store.pushHistory(score);
-
-    if (score > Store.best()) {
-      Store.setBest(score);
-      newBestEl.textContent = '★ New personal best!';
+    if (startPos === 1) {
+      Store.markPlayed();
+      Store.pushHistory(score);
+      if (score > Store.best()) {
+        Store.setBest(score);
+        newBestEl.textContent = '★ New personal best!';
+      }
+      refreshStats();
+      renderHistory();
+    } else {
+      newBestEl.textContent = '(practice run — stats not saved)';
     }
-
-    refreshStats();
-    renderHistory();
 
     typedEl.textContent    = typedChar;
     expectedEl.textContent = expectedChar;
@@ -535,7 +573,7 @@
       tapeEl.textContent  = tape;
       Store.addTotal(1);
       refreshStats();
-      newBestEl.textContent = idx > Store.best() ? '▸ Past your best!' : '';
+      newBestEl.textContent = (startPos === 1 && idx > Store.best()) ? '▸ Past your best!' : '';
       if (idx >= PI_DIGITS.length) {
         statusEl.textContent = '🎉 ALL ' + PI_DIGITS.length.toLocaleString() + ' digits correct!';
         Store.setBest(idx);
@@ -584,6 +622,7 @@
   });
 
   document.addEventListener('keydown', function (e) {
+    if (document.activeElement === startInput) return;
     if ((e.key === 'r' || e.key === 'R') && pState === 'idle' && currentTab === 'quiz') {
       resetQuiz();
     }
@@ -592,6 +631,30 @@
   resetBtn.addEventListener('click', function (e) {
     e.stopPropagation();
     resetQuiz();
+  });
+
+  function applyStartPos() {
+    const v = parseInt(startInput.value, 10);
+    if (!isNaN(v) && v >= 1 && v < PI_DIGITS.length) {
+      startPos = v;
+      resetQuiz();
+    } else {
+      startInput.value = startPos;
+    }
+  }
+
+  startGoBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    applyStartPos();
+  });
+
+  startInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); applyStartPos(); }
+    e.stopPropagation();
+  });
+
+  startInput.addEventListener('click', function (e) {
+    e.stopPropagation();
   });
 
   // ── Learn tab — digit grid ────────────────────────────────────────────────
