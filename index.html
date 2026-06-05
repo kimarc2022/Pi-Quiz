@@ -315,7 +315,7 @@
     <div id="new-best"></div>
 
     <div id="tape-wrap">
-      <div id="tape">3</div>
+      <div id="tape">3.</div>
     </div>
 
     <div id="error" class="hidden">
@@ -458,7 +458,7 @@
   let currentTab = 'quiz';
   let quizState  = 'active'; // 'active' | 'failed'
   let idx        = 1;
-  let tape       = '3';
+  let tape       = '3.';
 
   // Practice state
   let pState   = 'idle'; // 'idle' | 'memorize' | 'typing' | 'done'
@@ -491,9 +491,9 @@
   function resetQuiz() {
     quizState            = 'active';
     idx                  = 1;
-    tape                 = '3';
+    tape                 = '3.';
     countEl.textContent  = '1';
-    tapeEl.textContent   = '3';
+    tapeEl.textContent   = '3.';
     statusEl.textContent = 'Type the digits of π from memory — start with 1';
     newBestEl.textContent = '';
     errorEl.classList.add('hidden');
